@@ -148,6 +148,20 @@ var architectureInstallations = map[int][]Installation{
 			},
 		},
 	}},
+	osarch.ARCH_64BIT_RISCV_LITTLE_ENDIAN: {{
+		Paths: GetenvEdk2Paths("/usr/share/qemu-efi-riscv64"),
+		Usage: map[FirmwareUsage][]FirmwarePair{
+			GENERIC: {
+				{Code: "RISCV_VIRT_CODE.fd", Vars: "RISCV_VIRT_VARS.fd"},
+				{Code: "OVMF_CODE.4MB.fd", Vars: "OVMF_VARS.4MB.fd"},
+			},
+			SECUREBOOT: {
+				// Secure boot is not supported, yet. Fake it.
+				{Code: "RISCV_VIRT_CODE.fd", Vars: "RISCV_VIRT_VARS.fd"},
+				{Code: "OVMF_CODE.4MB.fd", Vars: "OVMF_VARS.4MB.fd"},
+			},
+		},
+	}},
 }
 
 // GetAchitectureFirmwareVarsCandidates returns a unique list of candidate vars names for hostArch for all usages.

@@ -902,8 +902,10 @@ parts:
       - libatomic
       - spice-server
       - python-runtime
-    source: https://git.launchpad.net/ubuntu/+source/qemu
-    source-commit: 90f147fd1faad479cc95fb4712f104597ee63e27 # import/1%10.2.1+ds-1ubuntu3.1
+    # source: https://git.launchpad.net/ubuntu/+source/qemu
+    # source-commit: 90f147fd1faad479cc95fb4712f104597ee63e27 # import/1%10.2.1+ds-1ubuntu3.1
+    source: https://git.launchpad.net/~xypron/ubuntu/+source/qemu
+    source-branch: lxd_testing
     source-depth: 1
     source-type: git
     plugin: autotools

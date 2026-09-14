@@ -107,6 +107,7 @@ func TestQemuConfigTemplates(t *testing.T) {
 			memory-backend = "riscv_virt_board.ram"
 
 			[boot-opts]
+			menu = "off"
 			strict = "on"`,
 		}, {
 			qemuBaseOpts{architecture: osarch.ARCH_64BIT_S390_BIG_ENDIAN},

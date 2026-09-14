@@ -143,6 +143,7 @@ func qemuBase(opts *qemuBaseOpts) []cfgSection {
 	gicVersion := ""
 	capLargeDecr := ""
 	acpi := ""
+	menu := ""
 
 	switch opts.architecture {
 	case osarch.ARCH_64BIT_ARMV8_LITTLE_ENDIAN:
@@ -152,6 +153,8 @@ func qemuBase(opts *qemuBaseOpts) []cfgSection {
 	case osarch.ARCH_64BIT_RISCV_LITTLE_ENDIAN:
 		// Booting Linux 7.0 failed with acpi="on" (LP: #2153582)
 		acpi = "off"
+		// Don't show EDK II countdown
+		menu = "off"
 	}
 
 	entries := []cfgEntry{
@@ -202,8 +205,11 @@ func qemuBase(opts *qemuBaseOpts) []cfgSection {
 	return append(
 		sections,
 		cfgSection{
-			name:    "boot-opts",
-			entries: []cfgEntry{{key: "strict", value: "on"}},
+			name: "boot-opts",
+			entries: []cfgEntry{
+				{key: "menu", value: menu},
+				{key: "strict", value: "on"},
+			},
 		})
 }
 

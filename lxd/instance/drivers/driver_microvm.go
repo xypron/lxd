@@ -919,7 +919,17 @@ func (d *microvm) Start(ctx context.Context, stateful bool, progressReporter iop
 	// triple-fault reboot-loop (100% CPU, no output) if the guest panics before hvc0 comes up.
 	kernelAppend := "console=hvc0 root=/dev/vda rootfstype=ext4 rw dummy.numdummies=0"
 
-	return d.startLibkrun(ctx, op, revert, kernelPath, rootDiskPath, nics, cpus, memSizeMiB, kernelAppend, postStartHooks)
+	// kernel.format overrides forklibkrun's magic-byte auto-detection of the kernel image
+	// format. This is required on architectures (e.g. riscv64) where libkrun's external
+	// kernel loader only supports a subset of formats (typically "raw", i.e. an uncompressed
+	// flat image such as arch/riscv/boot/Image) and auto-detection would otherwise either
+	// misdetect the format or fail outright. Defaults to "auto" when unset.
+	kernelFormat := d.expandedConfig["kernel.format"]
+	if kernelFormat == "" {
+		kernelFormat = "auto"
+	}
+
+	return d.startLibkrun(ctx, op, revert, kernelPath, kernelFormat, rootDiskPath, nics, cpus, memSizeMiB, kernelAppend, postStartHooks)
 }
 
 // microVMLimits returns the vCPU count and the memory size in MiB to boot a MicroVM with, as set
@@ -965,7 +975,7 @@ func microVMLimits(expandedConfig map[string]string) (cpus uint8, memSizeMiB uin
 // startLibkrun starts the MicroVM instance using libkrun via the forklibkrun helper subcommand.
 // libkrun's krun_start_enter() takes over the calling process and never returns, so it must run
 // in a dedicated child process rather than inside the LXD daemon.
-func (d *microvm) startLibkrun(ctx context.Context, op *operationlock.InstanceOperation, revert *revert.Reverter, kernelPath string, rootDiskPath string, nics []microVMNIC, cpus uint8, memSizeMiB uint32, kernelCmdline string, postStartHooks []func() error) error {
+func (d *microvm) startLibkrun(ctx context.Context, op *operationlock.InstanceOperation, revert *revert.Reverter, kernelPath string, kernelFormat string, rootDiskPath string, nics []microVMNIC, cpus uint8, memSizeMiB uint32, kernelCmdline string, postStartHooks []func() error) error {
 	consolePath := d.libkrunConsolePath()
 
 	// Remove old console socket if it exists (the PID file was removed by Start).
@@ -995,7 +1005,7 @@ func (d *microvm) startLibkrun(ctx context.Context, op *operationlock.InstanceOp
 		MemoryMiB: memSizeMiB,
 		Kernel: MicroVMConfigKernel{
 			Path:    kernelPath,
-			Format:  "auto",
+			Format:  kernelFormat,
 			Cmdline: kernelCmdline,
 		},
 		RootDisk:    rootDiskPath,

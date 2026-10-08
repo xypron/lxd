@@ -7,6 +7,7 @@ import (
 	"io"
 	"net"
 	"os"
+	"runtime"
 	"strings"
 	"sync"
 
@@ -92,6 +93,14 @@ func parseHWAddr(hwaddr string) ([6]byte, error) {
 }
 
 // detectKernelFormat inspects the leading magic bytes of a kernel image to determine its format.
+//
+// libkrun's external-kernel loader only implements a subset of KernelFormat values per
+// architecture (see load_external_kernel() in libkrun's vmm/builder.rs): x86_64 supports
+// Elf/ImageGz/ImageBz2/ImageZstd/PeGz, while aarch64/riscv64 only support Raw and PeGz (the
+// latter being a plain gzip-compressed raw image on those architectures, not an actual
+// PE/MZ-wrapped image as the name suggests on x86_64). Detection must therefore branch on
+// GOARCH, not just on magic bytes, otherwise a correctly-identified format may still be
+// rejected by libkrun with KernelFormatUnsupported.
 func detectKernelFormat(path string) (libkrun.KernelFormat, error) {
 	f, err := os.Open(path)
 	if err != nil {
@@ -104,6 +113,34 @@ func detectKernelFormat(path string) (libkrun.KernelFormat, error) {
 	_, err = io.ReadFull(f, hdr)
 	if err != nil {
 		return 0, fmt.Errorf("Failed reading kernel %q for format detection: %w", path, err)
+	}
+
+	if runtime.GOARCH != "amd64" {
+		// aarch64/riscv64: libkrun's loader only implements Raw (uncompressed flat
+		// "Image"/"vmlinux.bin") and PeGz (the same flat image, gzip-compressed; the
+		// loader just scans for a gzip magic anywhere in the file and decompresses
+		// from there, no PE/MZ header is actually required or checked). There is no
+		// usable magic to detect "raw" by, so anything that isn't recognizably
+		// gzip/zstd/bzip2-compressed is assumed to already be the flat raw image.
+		switch {
+		case bytes.Equal(hdr[:2], []byte{0x1f, 0x8b}):
+			// gzip-compressed Image (e.g. "make Image.gz" output).
+			return libkrun.KernelFormatPEGZ, nil
+		case bytes.Equal(hdr, []byte{0x7f, 'E', 'L', 'F'}):
+			return 0, fmt.Errorf("Kernel %q is an ELF file (e.g. vmlinux); libkrun on this architecture only supports the raw flat kernel image "+
+				"produced by \"make Image\" (optionally gzip-compressed via \"make Image.gz\"), not ELF. "+
+				"Set \"kernel.format\" explicitly or point the instance at the Image/Image.gz file instead", path)
+		case bytes.Equal(hdr, []byte{0x28, 0xb5, 0x2f, 0xfd}):
+			return 0, fmt.Errorf("Kernel %q is zstd-compressed, which libkrun does not support on this architecture; "+
+				"use the uncompressed \"Image\" or gzip-compressed \"Image.gz\" instead", path)
+		case bytes.Equal(hdr[:3], []byte{'B', 'Z', 'h'}):
+			return 0, fmt.Errorf("Kernel %q is bzip2-compressed, which libkrun does not support on this architecture; "+
+				"use the uncompressed \"Image\" or gzip-compressed \"Image.gz\" instead", path)
+		default:
+			// No recognized compressed-format magic: assume this is already the raw
+			// flat "Image".
+			return libkrun.KernelFormatRaw, nil
+		}
 	}
 
 	switch {

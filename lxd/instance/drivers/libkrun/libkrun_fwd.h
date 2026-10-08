@@ -35,6 +35,24 @@
                              NET_FEATURE_GUEST_TSO4 | NET_FEATURE_GUEST_UFO | \
                              NET_FEATURE_HOST_TSO4 | NET_FEATURE_HOST_UFO)
 
+/* Logging */
+#define KRUN_LOG_TARGET_DEFAULT -1
+
+#define KRUN_LOG_LEVEL_OFF   0
+#define KRUN_LOG_LEVEL_ERROR 1
+#define KRUN_LOG_LEVEL_WARN  2
+#define KRUN_LOG_LEVEL_INFO  3
+#define KRUN_LOG_LEVEL_DEBUG 4
+#define KRUN_LOG_LEVEL_TRACE 5
+
+#define KRUN_LOG_STYLE_AUTO   0
+#define KRUN_LOG_STYLE_ALWAYS 1
+#define KRUN_LOG_STYLE_NEVER  2
+
+#define KRUN_LOG_OPTION_NO_ENV 1
+
+int32_t krun_init_log(int target_fd, uint32_t level, uint32_t style, uint32_t options);
+
 /* Context lifecycle */
 int32_t krun_create_ctx();
 int32_t krun_free_ctx(uint32_t ctx_id);

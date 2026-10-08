@@ -134,6 +134,32 @@ func (c *cmdForklibkrun) run(_ *cobra.Command, _ []string) error {
 		return fmt.Errorf("Failed setting RUST_BACKTRACE: %w", err)
 	}
 
+	// Enable libkrun's internal logging so that failures reported only as a bare errno
+	// (e.g. "invalid argument") have an accompanying log::error!/warn! message with context.
+	// Output goes to this process's stderr, which the LXD daemon already redirects to the
+	// instance's log file (see startLibkrun in driver_microvm.go). Level can be overridden
+	// via LXD_LIBKRUN_LOG_LEVEL (off, error, warn, info, debug, trace) for extra verbosity.
+	logLevel := libkrun.LogLevelWarn
+	switch strings.ToLower(os.Getenv("LXD_LIBKRUN_LOG_LEVEL")) {
+	case "off":
+		logLevel = libkrun.LogLevelOff
+	case "error":
+		logLevel = libkrun.LogLevelError
+	case "warn":
+		logLevel = libkrun.LogLevelWarn
+	case "info":
+		logLevel = libkrun.LogLevelInfo
+	case "debug":
+		logLevel = libkrun.LogLevelDebug
+	case "trace":
+		logLevel = libkrun.LogLevelTrace
+	}
+
+	err = libkrun.InitLog(int(os.Stderr.Fd()), logLevel, libkrun.LogStyleNever, 0)
+	if err != nil {
+		return fmt.Errorf("Failed initializing libkrun logging: %w", err)
+	}
+
 	// Only root should run this.
 	if os.Geteuid() != 0 {
 		return errors.New("This must be run as root")

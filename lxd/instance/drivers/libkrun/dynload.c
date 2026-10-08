@@ -9,6 +9,7 @@
 #include "libkrun_fwd.h"
 
 struct krun_api {
+    __typeof__(krun_init_log) *init_log;
     __typeof__(krun_create_ctx) *create_ctx;
     __typeof__(krun_free_ctx) *free_ctx;
     __typeof__(krun_set_vm_config) *set_vm_config;
@@ -113,6 +114,7 @@ static void loader_init_once(void) {
         }
     }
 
+    RESOLVE_REQUIRED(init_log, krun_init_log);
     RESOLVE_REQUIRED(create_ctx, krun_create_ctx);
     RESOLVE_REQUIRED(free_ctx, krun_free_ctx);
     RESOLVE_REQUIRED(set_vm_config, krun_set_vm_config);
@@ -259,4 +261,12 @@ int32_t krun_start_enter(uint32_t ctx_id) {
     }
 
     return loader.api.start_enter(ctx_id);
+}
+
+int32_t krun_init_log(int target_fd, uint32_t level, uint32_t style, uint32_t options) {
+    if (!loader_ready()) {
+        return KRUN_LOADER_ERR;
+    }
+
+    return loader.api.init_log(target_fd, level, style, options);
 }

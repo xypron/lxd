@@ -657,11 +657,6 @@ func (d *microvm) Start(ctx context.Context, stateful bool, progressReporter iop
 		return err
 	}
 
-	// MicroVM only supports x86_64.
-	if d.architecture != osarch.ARCH_64BIT_INTEL_X86 {
-		return errors.New("MicroVM is only supported on x86_64 architecture")
-	}
-
 	// Validate that the kernel and the libkrun library are available.
 	kernelPath, err := d.hostPrerequisites()
 	if err != nil {

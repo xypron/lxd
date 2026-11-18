@@ -142,6 +142,7 @@ func qemuBase(opts *qemuBaseOpts) []cfgSection {
 	gicVersion := ""
 	capLargeDecr := ""
 	acpi := ""
+	aia := ""
 
 	switch opts.architecture {
 	case osarch.ARCH_64BIT_ARMV8_LITTLE_ENDIAN:
@@ -151,6 +152,7 @@ func qemuBase(opts *qemuBaseOpts) []cfgSection {
 	case osarch.ARCH_64BIT_RISCV_LITTLE_ENDIAN:
 		// Booting Linux 7.0 failed with acpi="on" (LP: #2153582)
 		acpi = "off"
+		aia = "aplic-imsic"
 	}
 
 	entries := []cfgEntry{
@@ -160,6 +162,7 @@ func qemuBase(opts *qemuBaseOpts) []cfgSection {
 		{key: "cap-large-decr", value: capLargeDecr},
 		{key: "accel", value: "kvm"},
 		{key: "acpi", value: acpi},
+		{key: "aia", value: aia},
 		{key: "usb", value: "off"},
 	}
 
